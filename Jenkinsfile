@@ -138,10 +138,6 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: '8b6cd893-8251-45d5-ba40-cfd71b3ac003', passwordVariable: 'SYSADMIN_PASSWORD', usernameVariable: 'SYSADMIN_USER')]) {
                     script {
-                        if (!params.MigrationPackageName || !params.MigrationPackageURI) {
-                            error("MigrationPackageName or MigrationPackageURI parameter is missing.")
-                        }
-
                         // List migration package on anzo-dev
                         def anzoDevCurlCommand = "ssh -o StrictHostKeyChecking=yes ${EC2_USER}@${ANZO_DEV_HOST} \"curl -k -X GET ''https://dev-anzo.dataplatform.rtx.com/api/migration/http://cambridgesemantics.com/MigrationPackage/ebd7b0339df349c9b4e68a078785a0c4' -H 'accept: application/json' -u ${SYSADMIN_USER}:${SYSADMIN_PASSWORD} | jq\""
                         echo "Executing command on anzo-dev: ${anzoDevCurlCommand.replaceAll(SYSADMIN_PASSWORD, '****')}"
