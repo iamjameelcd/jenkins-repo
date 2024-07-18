@@ -14,6 +14,7 @@ pipeline {
         EC2_USER = 'ec2-user'
     }
 
+    
     stages {
         stage('Confirm Deployment') {
             steps {
