@@ -15,6 +15,19 @@ pipeline {
     }
 
     stages {
+                stage('Confirm Deployment') {
+            steps {
+                script {
+                    def userInput = input(
+                        id: 'Proceed1', message: 'Do you want to proceed with the deployment?', parameters: [
+                        [$class: 'BooleanParameterDefinition', defaultValue: true, description: '', name: 'Proceed']
+                    ])
+                    if (!userInput) {
+                        error 'User aborted the build.'
+                    }
+                }
+            }
+        }
         stage('Verify Tools') {
             steps {
                 script {
