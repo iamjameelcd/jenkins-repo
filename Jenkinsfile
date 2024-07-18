@@ -14,10 +14,7 @@ pipeline {
         EC2_USER = 'ec2-user'
     }
 
-    
     stages {
-
-        
         stage('Verify Tools') {
             steps {
                 script {
