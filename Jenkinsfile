@@ -15,6 +15,20 @@ pipeline {
     }
 
     stages {
+        // stage('Confirm Deployment') {
+        //     steps {
+        //         script {
+        //             def userInput = input(
+        //                 id: 'ConfirmDeployment', message: 'This is PRODUCTION! Please confirm you are sure to proceed.', parameters: [
+        //                 [$class: 'BooleanParameterDefinition', defaultValue: false, description: '', name: 'Proceed']
+        //             ])
+                    
+        //             if (!userInput) {
+        //                 error "Build wasn't confirmed"
+        //             }
+        //         }
+        //     }
+        // }
         stage('Confirm Deployment') {
             steps {
                 script {
@@ -24,11 +38,16 @@ pipeline {
                     ])
                     
                     if (!userInput) {
-                        error "Build wasn't confirmed"
+                        echo "Build wasn't confirmed. Aborting."
+                        currentBuild.result = 'ABORTED'
+                        error "Build aborted by user."
+                    } else {
+                        echo "Build confirmed. Proceeding."
                     }
                 }
             }
         }
+                
         
         stage('Verify Tools') {
             steps {
