@@ -21,7 +21,7 @@ pipeline {
                 script {
                     def userInput = input(
                         id: 'Proceed1', message: 'Do you want to proceed with the deployment?', parameters: [
-                        [$class: 'BooleanParameterDefinition', defaultValue: true, description: '', name: 'Abort']
+                        [$class: 'BooleanParameterDefinition', defaultValue: false, description: '', name: 'Abort']
                     ])
                     if (!userInput) {
                         error 'User aborted the build.'
