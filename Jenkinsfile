@@ -15,20 +15,6 @@ pipeline {
     }
 
     stages {
-        // stage('Confirm Deployment') {
-        //     steps {
-        //         script {
-        //             def userInput = input(
-        //                 id: 'ConfirmDeployment', message: 'This is PRODUCTION! Please confirm you are sure to proceed.', parameters: [
-        //                 [$class: 'BooleanParameterDefinition', defaultValue: false, description: '', name: 'Proceed']
-        //             ])
-                    
-        //             if (!userInput) {
-        //                 error "Build wasn't confirmed"
-        //             }
-        //         }
-        //     }
-        // }
         stage('Confirm Deployment') {
             steps {
                 script {
