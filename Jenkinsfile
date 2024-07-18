@@ -29,7 +29,6 @@ pipeline {
                 }
             }
         }
-
         
         stage('Verify Tools') {
             steps {
