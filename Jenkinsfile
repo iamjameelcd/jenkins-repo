@@ -16,19 +16,18 @@ pipeline {
 
     
     stages {
-        stage('Confirm Deployment') {
-            steps {
-                script {
-                    def userInput = input(
-                        id: 'Proceed1', message: 'Do you want to proceed with the deployment?', parameters: [
-                        [$class: 'BooleanParameterDefinition', defaultValue: false, description: '', name: 'Abort']
-                    ])
-                    if (!userInput) {
-                        error 'User aborted the build.'
-                    }
-                }
-            }
+        def verify() {
+    stage('Verify') {
+        def userInput = input(
+            id: 'userInput', message: 'This is PRODUCTION!', parameters: [
+            [$class: 'BooleanParameterDefinition', defaultValue: false, description: '', name: 'Please confirm you sure to proceed']
+        ])
+
+        if(!userInput) {
+            error "Build wasn't confirmed"
         }
+    }
+}
         
         stage('Verify Tools') {
             steps {
