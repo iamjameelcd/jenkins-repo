@@ -15,6 +15,7 @@ pipeline {
     }
 
     stages {
+        
         stage('Confirm Deployment') {
             steps {
                 script {
