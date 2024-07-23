@@ -1,0 +1,108 @@
+name: Anzo Migration Package Promotion
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  confirm-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm Deployment
+        id: confirm
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const core = require('@actions/core');
+            const github = require('@actions/github');
+
+            const proceed = core.getInput('proceed');
+            if (proceed !== 'true') {
+              core.setFailed("Build wasn't confirmed. Aborting.");
+            } else {
+              console.log("Build confirmed. Proceeding.");
+            }
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    outputs:
+      proceed: ${{ steps.confirm.outputs.proceed }}
+
+  verify-tools:
+    runs-on: ubuntu-latest
+    needs: confirm-deployment
+    if: ${{ needs.confirm-deployment.outputs.proceed == 'true' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Verify Tools on anzo-dev
+        run: |
+          missing_tools=()
+          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${{ secrets.ANZO_DEV_HOST }} "
+          if ! [ -f /opt/anzo/Client/anzo ]; then
+              missing_tools+=('anzo')
+          fi
+          if ! command -v jq > /dev/null; then
+              missing_tools+=('jq')
+          fi
+          if ! command -v curl > /dev/null; then
+              missing_tools+=('curl')
+          fi
+          if [ ${#missing_tools[@]} -ne 0 ]; then
+              echo "Missing tools on anzo-dev: ${missing_tools[@]}"
+              exit 1
+          fi"
+
+      - name: Verify Tools on anzo-qa
+        run: |
+          missing_tools=()
+          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${{ secrets.ANZO_QA_HOST }} "
+          if ! [ -f /opt/anzo/Client/anzo ]; then
+              missing_tools+=('anzo')
+          fi
+          if ! command -v jq > /dev/null; then
+              missing_tools+=('jq')
+          fi
+          if ! command -v curl > /dev/null; then
+              missing_tools+=('curl')
+          fi
+          if [ ${#missing_tools[@]} -ne 0 ]; then
+              echo "Missing tools on anzo-qa: ${missing_tools[@]}"
+              exit 1
+          fi"
+
+  list-migration-package:
+    runs-on: ubuntu-latest
+    needs: verify-tools
+    if: ${{ needs.verify-tools.result == 'success' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: List Migration Package on anzo-dev
+        env:
+          SYSADMIN_USER: ${{ secrets.SYSADMIN_USER }}
+          SYSADMIN_PASSWORD: ${{ secrets.SYSADMIN_PASSWORD }}
+        run: |
+          anzo_dev_response=$(ssh -o StrictHostKeyChecking=no ${EC2_USER}@${{ secrets.ANZO_DEV_HOST }} "
+            curl -k -X GET 'https://dev-anzo.dataplatform.rtx.com/api/migration/http://cambridgesemantics.com/MigrationPackage/${{ secrets.MIGRATION_PACKAGE_ID }}' \
+            -H 'accept: application/json' \
+            -u ${SYSADMIN_USER}:${SYSADMIN_PASSWORD} | jq")
+          echo "Migration Package Details on anzo-dev: ${anzo_dev_response}"
+
+      - name: List Migration Package on anzo-qa
+        env:
+          SYSADMIN_USER: ${{ secrets.SYSADMIN_USER }}
+          SYSADMIN_PASSWORD: ${{ secrets.SYSADMIN_PASSWORD }}
+        run: |
+          anzo_qa_response=$(ssh -o StrictHostKeyChecking=no ${EC2_USER}@${{ secrets.ANZO_QA_HOST }} "
+            curl -k -X GET 'https://dev-anzo.dataplatform.rtx.com/api/migration/http://cambridgesemantics.com/MigrationPackage/${{ secrets.MIGRATION_PACKAGE_ID }}' \
+            -H 'accept: application/json' \
+            -u ${SYSADMIN_USER}:${SYSADMIN_PASSWORD} | jq")
+          echo "Migration Package Details on anzo-qa: ${anzo_qa_response}"
