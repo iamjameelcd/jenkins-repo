@@ -40,10 +40,28 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Setup SSH Key for anzo-dev
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_DEV_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa_dev
+          chmod 600 ~/.ssh/id_rsa_dev
+        env:
+          EC2_DEV_SSH_PRIVATE_KEY: ${{ secrets.EC2_DEV_SSH_PRIVATE_KEY }}
+
+      - name: Setup SSH Key for anzo-qa
+        run: |
+          echo "${{ secrets.EC2_QA_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa_qa
+          chmod 600 ~/.ssh/id_rsa_qa
+        env:
+          EC2_QA_SSH_PRIVATE_KEY: ${{ secrets.EC2_QA_SSH_PRIVATE_KEY }}
+
       - name: Verify Tools on anzo-dev
+        env:
+          EC2_USER_DEV: ${{ secrets.EC2_USER_DEV }}
+          ANZO_DEV_HOST: ${{ secrets.ANZO_DEV_HOST }}
         run: |
           missing_tools=()
-          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${{ secrets.ANZO_DEV_HOST }} "
+          ssh -i ~/.ssh/id_rsa_dev -o StrictHostKeyChecking=no ${EC2_USER_DEV}@${ANZO_DEV_HOST} "
           if ! [ -f /opt/anzo/Client/anzo ]; then
               missing_tools+=('anzo')
           fi
@@ -59,9 +77,12 @@ jobs:
           fi"
 
       - name: Verify Tools on anzo-qa
+        env:
+          EC2_USER_QA: ${{ secrets.EC2_USER_QA }}
+          ANZO_QA_HOST: ${{ secrets.ANZO_QA_HOST }}
         run: |
           missing_tools=()
-          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${{ secrets.ANZO_QA_HOST }} "
+          ssh -i ~/.ssh/id_rsa_qa -o StrictHostKeyChecking=no ${EC2_USER_QA}@${ANZO_QA_HOST} "
           if ! [ -f /opt/anzo/Client/anzo ]; then
               missing_tools+=('anzo')
           fi
@@ -71,7 +92,7 @@ jobs:
           if ! command -v curl > /dev/null; then
               missing_tools+=('curl')
           fi
-          if [ ${#missing_tools[@]} -ne 0 ]; then
+          if [ ${#missing_tools[@]} -ne 0; then
               echo "Missing tools on anzo-qa: ${missing_tools[@]}"
               exit 1
           fi"
@@ -89,9 +110,12 @@ jobs:
         env:
           SYSADMIN_USER: ${{ secrets.SYSADMIN_USER }}
           SYSADMIN_PASSWORD: ${{ secrets.SYSADMIN_PASSWORD }}
+          EC2_USER_DEV: ${{ secrets.EC2_USER_DEV }}
+          ANZO_DEV_HOST: ${{ secrets.ANZO_DEV_HOST }}
+          MIGRATION_PACKAGE_ID: ${{ secrets.MIGRATION_PACKAGE_ID }}
         run: |
-          anzo_dev_response=$(ssh -o StrictHostKeyChecking=no ${EC2_USER}@${{ secrets.ANZO_DEV_HOST }} "
-            curl -k -X GET 'https://dev-anzo.dataplatform.rtx.com/api/migration/http://cambridgesemantics.com/MigrationPackage/${{ secrets.MIGRATION_PACKAGE_ID }}' \
+          anzo_dev_response=$(ssh -i ~/.ssh/id_rsa_dev -o StrictHostKeyChecking=no ${EC2_USER_DEV}@${ANZO_DEV_HOST} "
+            curl -k -X GET 'https://dev-anzo.dataplatform.rtx.com/api/migration/http://cambridgesemantics.com/MigrationPackage/${MIGRATION_PACKAGE_ID}' \
             -H 'accept: application/json' \
             -u ${SYSADMIN_USER}:${SYSADMIN_PASSWORD} | jq")
           echo "Migration Package Details on anzo-dev: ${anzo_dev_response}"
@@ -100,9 +124,12 @@ jobs:
         env:
           SYSADMIN_USER: ${{ secrets.SYSADMIN_USER }}
           SYSADMIN_PASSWORD: ${{ secrets.SYSADMIN_PASSWORD }}
+          EC2_USER_QA: ${{ secrets.EC2_USER_QA }}
+          ANZO_QA_HOST: ${{ secrets.ANZO_QA_HOST }}
+          MIGRATION_PACKAGE_ID: ${{ secrets.MIGRATION_PACKAGE_ID }}
         run: |
-          anzo_qa_response=$(ssh -o StrictHostKeyChecking=no ${EC2_USER}@${{ secrets.ANZO_QA_HOST }} "
-            curl -k -X GET 'https://dev-anzo.dataplatform.rtx.com/api/migration/http://cambridgesemantics.com/MigrationPackage/${{ secrets.MIGRATION_PACKAGE_ID }}' \
+          anzo_qa_response=$(ssh -i ~/.ssh/id_rsa_qa -o StrictHostKeyChecking=no ${EC2_USER_QA}@${ANZO_QA_HOST} "
+            curl -k -X GET 'https://dev-anzo.dataplatform.rtx.com/api/migration/http://cambridgesemantics.com/MigrationPackage/${MIGRATION_PACKAGE_ID}' \
             -H 'accept: application/json' \
             -u ${SYSADMIN_USER}:${SYSADMIN_PASSWORD} | jq")
           echo "Migration Package Details on anzo-qa: ${anzo_qa_response}"
