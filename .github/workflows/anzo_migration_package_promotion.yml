@@ -21,12 +21,12 @@ jobs:
       - name: Confirm Deployment
         id: confirm
         run: |
+          echo "proceed=${{ github.event.inputs.proceed }}" >> $GITHUB_ENV
           if [ "${{ github.event.inputs.proceed }}" != "true" ]; then
             echo "Build wasn't confirmed. Aborting."
             exit 1
           else
             echo "Build confirmed. Proceeding."
-            echo "proceed=true" >> $GITHUB_ENV
           fi
 
   verify-tools:
@@ -90,7 +90,7 @@ jobs:
           if ! command -v curl > /dev/null; then
               missing_tools+=("curl")
           fi
-          if [ ${#missing_tools[@]} -ne 0 ]; then
+          if [ ${#missing_tools[@]} -ne 0; then
               echo "Missing tools on anzo-qa: ${missing_tools[@]}"
               exit 1
           fi
