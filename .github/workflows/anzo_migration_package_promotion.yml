@@ -4,42 +4,10 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      proceed:
-        description: 'Confirm deployment'
-        required: true
-        default: 'false'
-        type: boolean
 
 jobs:
-  confirm-deployment:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Confirm Deployment
-        id: confirm
-        uses: trstringer/manual-approval@v1
-        with:
-          secret: ${{ secrets.GITHUB_TOKEN }}
-          approvers: iamjameelcd
-          issue-title: 'Manual approval required for deployment'
-          issue-body: 'Please approve or deny this deployment request. Approvers: your-github-username'
-          minimum-approvals: 1
-
-      - name: Check Approval
-        id: check_approval
-        run: |
-          if [ "${{ steps.confirm.outputs.status }}" != "approved" ]; then
-            echo "Build wasn't confirmed. Aborting."
-            exit 1
-          else
-            echo "Build confirmed. Proceeding."
-          fi
-
   verify-tools:
     runs-on: ubuntu-latest
-    needs: confirm-deployment
-    if: ${{ needs.confirm-deployment.outputs.status == 'approved' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
