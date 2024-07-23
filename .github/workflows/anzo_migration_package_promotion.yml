@@ -15,25 +15,29 @@ on:
 jobs:
   confirm-deployment:
     runs-on: ubuntu-latest
-    outputs:
-      proceed: ${{ steps.confirm.outputs.proceed }}
     steps:
       - name: Confirm Deployment
         id: confirm
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ secrets.GITHUB_TOKEN }}
+          approvers: your-github-username
+          comment: "Please confirm if you want to proceed with the deployment."
+
+      - name: Check Approval
+        id: check_approval
         run: |
-          if [ "${{ github.event.inputs.proceed }}" != "true" ]; then
+          if [ "${{ steps.confirm.outputs.status }}" != "approved" ]; then
             echo "Build wasn't confirmed. Aborting."
             exit 1
           else
             echo "Build confirmed. Proceeding."
           fi
-        env:
-          proceed: ${{ github.event.inputs.proceed }}
 
   verify-tools:
     runs-on: ubuntu-latest
     needs: confirm-deployment
-    if: ${{ needs.confirm-deployment.outputs.proceed == 'true' }}
+    if: ${{ needs.confirm-deployment.outputs.status == 'approved' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -43,15 +47,11 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_DEV_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa_dev
           chmod 600 ~/.ssh/id_rsa_dev
-        env:
-          EC2_DEV_SSH_PRIVATE_KEY: ${{ secrets.EC2_DEV_SSH_PRIVATE_KEY }}
 
       - name: Setup SSH Key for anzo-qa
         run: |
           echo "${{ secrets.EC2_QA_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa_qa
           chmod 600 ~/.ssh/id_rsa_qa
-        env:
-          EC2_QA_SSH_PRIVATE_KEY: ${{ secrets.EC2_QA_SSH_PRIVATE_KEY }}
 
       - name: Verify Tools on anzo-dev
         env:
