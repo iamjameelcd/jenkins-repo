@@ -1,13 +1,48 @@
 name: Anzo Migration Package Promotion
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      AnzoEnvironment:
+        description: 'Environment to deploy to'
+        required: false
+        default: 'stage'
+        type: string
+      MigrationPackageName:
+        description: 'Name of the migration package'
+        required: true
+        type: string
+      MigrationPackageURI:
+        description: 'URI of the migration package'
+        required: true
+        type: string
+      MigrationPackagePromotion:
+        description: 'Promotion stage'
+        required: false
+        default: 'StageToQA'
+        type: choice
+        options:
+          - StageToQA
+          - StageToProd
 
 jobs:
+  confirm-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm Deployment
+        id: confirm
+        run: |
+          if [ "${{ github.event.inputs.AnzoEnvironment }}" != "stage" ] && [ "${{ github.event.inputs.MigrationPackagePromotion }}" != "StageToQA" ] && [ "${{ github.event.inputs.MigrationPackagePromotion }}" != "StageToProd" ]; then
+            echo "Build wasn't confirmed. Aborting."
+            exit 1
+          else
+            echo "Build confirmed. Proceeding."
+          fi
+
   verify-tools:
     runs-on: ubuntu-latest
+    needs: confirm-deployment
+    if: ${{ needs.confirm-deployment.result == 'success' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -80,12 +115,11 @@ jobs:
           SYSADMIN_USER: ${{ secrets.SYSADMIN_USER }}
           SYSADMIN_PASSWORD: ${{ secrets.SYSADMIN_PASSWORD }}
           EC2_USER_DEV: ${{ secrets.EC2_USER_DEV }}
-          EC2_USER_QA: ${{ secrets.EC2_USER_QA }}
           ANZO_DEV_HOST: ${{ secrets.ANZO_DEV_HOST }}
-          ANZO_QA_HOST: ${{ secrets.ANZO_QA_HOST }}
+          MIGRATION_PACKAGE_ID: ${{ github.event.inputs.MigrationPackageName }}
         run: |
           anzo_dev_response=$(ssh -i ~/.ssh/id_rsa_dev -o StrictHostKeyChecking=no ${EC2_USER_DEV}@${ANZO_DEV_HOST} "
-            curl -k -X GET 'https://dev-anzo.dataplatform.rtx.com/api/migration/http://cambridgesemantics.com/MigrationPackage/ebd7b0339df349c9b4e68a078785a0c4' \
+            curl -k -X GET 'https://dev-anzo.dataplatform.rtx.com/api/migration/http://cambridgesemantics.com/MigrationPackage/${MIGRATION_PACKAGE_ID}' \
             -H 'accept: application/json' \
             -u ${SYSADMIN_USER}:${SYSADMIN_PASSWORD} | jq")
           echo "Migration Package Details on anzo-dev: ${anzo_dev_response}"
@@ -96,10 +130,10 @@ jobs:
           SYSADMIN_PASSWORD: ${{ secrets.SYSADMIN_PASSWORD }}
           EC2_USER_QA: ${{ secrets.EC2_USER_QA }}
           ANZO_QA_HOST: ${{ secrets.ANZO_QA_HOST }}
-          MIGRATION_PACKAGE_ID: ${{ secrets.MIGRATION_PACKAGE_ID }}
+          MIGRATION_PACKAGE_ID: ${{ github.event.inputs.MigrationPackageName }}
         run: |
           anzo_qa_response=$(ssh -i ~/.ssh/id_rsa_qa -o StrictHostKeyChecking=no ${EC2_USER_QA}@${ANZO_QA_HOST} "
-            curl -k -X GET 'https://dev-anzo.dataplatform.rtx.com/api/migration/http://cambridgesemantics.com/MigrationPackage/ebd7b0339df349c9b4e68a078785a0c4' \
+            curl -k -X GET 'https://dev-anzo.dataplatform.rtx.com/api/migration/http://cambridgesemantics.com/MigrationPackage/${MIGRATION_PACKAGE_ID}' \
             -H 'accept: application/json' \
             -u ${SYSADMIN_USER}:${SYSADMIN_PASSWORD} | jq")
           echo "Migration Package Details on anzo-qa: ${anzo_qa_response}"
