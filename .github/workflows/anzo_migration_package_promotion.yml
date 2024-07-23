@@ -5,7 +5,7 @@ on:
     inputs:
       AnzoEnvironment:
         description: 'Environment to deploy to'
-        required: false
+        required: true
         default: 'stage'
         type: string
       MigrationPackageName:
@@ -18,7 +18,7 @@ on:
         type: string
       MigrationPackagePromotion:
         description: 'Promotion stage'
-        required: false
+        required: true
         default: 'StageToQA'
         type: choice
         options:
