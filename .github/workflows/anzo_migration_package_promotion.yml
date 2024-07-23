@@ -28,8 +28,6 @@ jobs:
             echo "Build confirmed. Proceeding."
             echo "proceed=true" >> $GITHUB_ENV
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   verify-tools:
     runs-on: ubuntu-latest
