@@ -22,7 +22,9 @@ jobs:
         with:
           secret: ${{ secrets.GITHUB_TOKEN }}
           approvers: iamjameelcd
-          comment: "Please confirm if you want to proceed with the deployment."
+          issue-title: 'Manual approval required for deployment'
+          issue-body: 'Please approve or deny this deployment request. Approvers: your-github-username'
+          minimum-approvals: 1
 
       - name: Check Approval
         id: check_approval
