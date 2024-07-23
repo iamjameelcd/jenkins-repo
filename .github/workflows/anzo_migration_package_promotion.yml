@@ -9,33 +9,26 @@ on:
 jobs:
   confirm-deployment:
     runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.confirm.outputs.proceed }}
     steps:
       - name: Confirm Deployment
         id: confirm
-        uses: actions/github-script@v5
-        with:
-          script: |
-            const core = require('@actions/core');
-            const github = require('@actions/github');
-
-            const proceed = core.getInput('proceed');
-            if (proceed !== 'true') {
-              core.setFailed("Build wasn't confirmed. Aborting.");
-            } else {
-              console.log("Build confirmed. Proceeding.");
-            }
-
+        run: |
+          if [ "${{ github.event.inputs.proceed }}" != "true" ]; then
+            echo "Build wasn't confirmed. Aborting."
+            exit 1
+          else
+            echo "Build confirmed. Proceeding."
+            echo "proceed=true" >> $GITHUB_ENV
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    outputs:
-      proceed: ${{ steps.confirm.outputs.proceed }}
 
   verify-tools:
     runs-on: ubuntu-latest
     needs: confirm-deployment
     if: ${{ needs.confirm-deployment.outputs.proceed == 'true' }}
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -60,48 +53,49 @@ jobs:
           EC2_USER_DEV: ${{ secrets.EC2_USER_DEV }}
           ANZO_DEV_HOST: ${{ secrets.ANZO_DEV_HOST }}
         run: |
+          ssh -i ~/.ssh/id_rsa_dev -o StrictHostKeyChecking=no ${EC2_USER_DEV}@${ANZO_DEV_HOST} '
           missing_tools=()
-          ssh -i ~/.ssh/id_rsa_dev -o StrictHostKeyChecking=no ${EC2_USER_DEV}@${ANZO_DEV_HOST} "
           if ! [ -f /opt/anzo/Client/anzo ]; then
-              missing_tools+=('anzo')
+              missing_tools+=("anzo")
           fi
           if ! command -v jq > /dev/null; then
-              missing_tools+=('jq')
+              missing_tools+=("jq")
           fi
           if ! command -v curl > /dev/null; then
-              missing_tools+=('curl')
+              missing_tools+=("curl")
           fi
           if [ ${#missing_tools[@]} -ne 0 ]; then
               echo "Missing tools on anzo-dev: ${missing_tools[@]}"
               exit 1
-          fi"
+          fi
+          '
 
       - name: Verify Tools on anzo-qa
         env:
           EC2_USER_QA: ${{ secrets.EC2_USER_QA }}
           ANZO_QA_HOST: ${{ secrets.ANZO_QA_HOST }}
         run: |
+          ssh -i ~/.ssh/id_rsa_qa -o StrictHostKeyChecking=no ${EC2_USER_QA}@${ANZO_QA_HOST} '
           missing_tools=()
-          ssh -i ~/.ssh/id_rsa_qa -o StrictHostKeyChecking=no ${EC2_USER_QA}@${ANZO_QA_HOST} "
           if ! [ -f /opt/anzo/Client/anzo ]; then
-              missing_tools+=('anzo')
+              missing_tools+=("anzo")
           fi
           if ! command -v jq > /dev/null; then
-              missing_tools+=('jq')
+              missing_tools+=("jq")
           fi
           if ! command -v curl > /dev/null; then
-              missing_tools+=('curl')
+              missing_tools+=("curl")
           fi
-          if [ ${#missing_tools[@]} -ne 0; then
+          if [ ${#missing_tools[@]} -ne 0 ]; then
               echo "Missing tools on anzo-qa: ${missing_tools[@]}"
               exit 1
-          fi"
+          fi
+          '
 
   list-migration-package:
     runs-on: ubuntu-latest
     needs: verify-tools
     if: ${{ needs.verify-tools.result == 'success' }}
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
