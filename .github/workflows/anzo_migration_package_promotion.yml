@@ -16,7 +16,7 @@ jobs:
         with:
           script: |
             var core = require('@actions/core');
-            const github = require('@actions/github');
+            var github = require('@actions/github');
 
             const proceed = core.getInput('proceed');
             if (proceed !== 'true') {
