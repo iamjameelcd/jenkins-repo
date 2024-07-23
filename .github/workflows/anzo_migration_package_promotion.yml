@@ -21,7 +21,7 @@ jobs:
         uses: trstringer/manual-approval@v1
         with:
           secret: ${{ secrets.GITHUB_TOKEN }}
-          approvers: your-github-username
+          approvers: iamjameelcd
           comment: "Please confirm if you want to proceed with the deployment."
 
       - name: Check Approval
