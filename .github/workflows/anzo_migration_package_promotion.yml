@@ -15,7 +15,7 @@ jobs:
         uses: actions/github-script@v5
         with:
           script: |
-            const core = require('@actions/core');
+            var core = require('@actions/core');
             const github = require('@actions/github');
 
             const proceed = core.getInput('proceed');
